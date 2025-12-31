@@ -94,7 +94,9 @@ if uploaded_file:
         pred_input = pd.DataFrame([[city_enc, month_idx*4, 75, 298, 75]], 
                                   columns=['city_encoded', 'weekofyear', 'reanalysis_relative_humidity_percent', 'reanalysis_avg_temp_k', 'reanalysis_relative_humidity_percent_lag4'])
         predicted_cases = int(trend_engine.predict(pred_input)[0])
-        score, status, advice, color, _ = calculate_hybrid_risk(predicted_cases, detections)
+        
+        # Updated to catch ALL 7 return values from your beautiful new utils logic
+        score, status, advice, color, threshold, vans_needed, workers_needed = calculate_hybrid_risk(predicted_cases, detections)
 
         fig = go.Figure(go.Indicator(
             mode = "gauge+number", value = score,
@@ -116,11 +118,11 @@ if uploaded_file:
 
     with bot_col2:
         st.subheader("🛠️ Strategic Resource Allocation")
-        vans = "2 Fumigation Units" if score > 60 else "1 Fumigation Unit"
+        # Ab ye values directly utils se aa rahi hain, koi fix manual nahi hai
         st.markdown(f"""<div class="status-card">
-            <p>🚚 <b>Anti-Vector Vehicles:</b> {vans}</p>
-            <p>👥 <b>Field Personnel:</b> {"15 Workers" if score > 50 else "5 Workers"}</p>
-            <p>🧪 <b>Larvicide Inventory:</b> Priority Stock for {selected_city}</p>
+            <p>🚚 <b>Anti-Vector Vehicles:</b> {vans_needed}</p>
+            <p>👥 <b>Field Personnel:</b> {workers_needed}</p>
+            <p>🧪 <b>Larvicide Inventory:</b> {"High Priority" if score > 50 else "Standard Stock"} for {selected_city}</p>
         </div>""", unsafe_allow_html=True)
 else:
     st.info("💡 Strategic Advice: Upload larval habitat data to initiate the Vector-Borne Disease Intelligence engine.")
