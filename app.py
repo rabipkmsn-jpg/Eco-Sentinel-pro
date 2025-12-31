@@ -6,112 +6,115 @@ from PIL import Image
 import folium
 from folium.plugins import HeatMap
 from streamlit_folium import st_folium
+import plotly.graph_objects as go
 from utils import calculate_hybrid_risk
 
-# --- 1. Page Config & Professional Styling ---
-st.set_page_config(page_title="Eco-Sentinel Pro | Intelligence Dashboard", layout="wide")
+# --- 1. Page Configuration ---
+st.set_page_config(page_title="Eco-Sentinel Pro", layout="wide")
 
+# Custom CSS for Professional Cards
 st.markdown("""
     <style>
-    .main { background-color: #0e1117; }
-    .stMetric { background-color: #1f2937; padding: 15px; border-radius: 10px; border-left: 5px solid #3b82f6; }
-    .stAlert { border-radius: 12px; }
-    h1, h2, h3 { color: #f3f4f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .metric-card { background-color: #1f2937; padding: 20px; border-radius: 15px; border-left: 5px solid #3b82f6; }
+    .status-card { background-color: #111827; padding: 20px; border-radius: 15px; border: 1px solid #374151; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. Model Loading ---
 @st.cache_resource
-def load_resources():
-    # Paths adjusted to your folder structure
-    vision_model = YOLO('models/yolo_vision/best.pt') 
-    trend_model = joblib.load('models/trend_analysis/dengue_xgboost_model.pkt')
-    return vision_model, trend_model
+def load_models():
+    return YOLO('models/yolo_vision/best.pt'), joblib.load('models/trend_analysis/dengue_xgboost_model.pkt')
 
-vision_engine, trend_engine = load_resources()
+vision_engine, trend_engine = load_models()
 
-# --- 3. Sidebar (No San Juan - Only Pakistan Cities) ---
+# --- 2. Sidebar (Left Side Controls) ---
+months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/2760/2760147.png", width=80)
-    st.title("Control Panel")
+    st.title("🛡️ Control Panel")
     selected_city = st.selectbox("🎯 Target Region", ["Karachi", "Lahore"])
-    selected_month = st.select_slider("📅 Forecast Month", options=list(range(1, 13)))
-    conf_threshold = st.sidebar.slider("🔍 Detection Sensitivity", 0.1, 1.0, 0.4)
+    selected_month = st.selectbox("📅 Forecast Month", months)
+    month_idx = months.index(selected_month) + 1
+    conf_threshold = st.slider("🔍 Detection Sensitivity", 0.1, 1.0, 0.4)
     st.divider()
-    st.caption("System Status: Operational 🟢")
+    st.success("System Status: Operational 🟢")
 
-# --- 4. Main Dashboard UI ---
-st.title("🛡️ Eco-Sentinel Pro: Hybrid Outbreak Intelligence")
+# --- 3. Main Layout Structure ---
+st.title("🛡️ Eco-Sentinel Pro: Outbreak Intelligence Dashboard")
 
-uploaded_file = st.file_uploader("📤 Upload Field Surveillance Data (Video or Image)", type=["mp4", "jpg", "jpeg", "png"])
+# Top Section: File Uploader & Map (Heatmap)
+top_col1, top_col2 = st.columns([1, 2])
 
-# Initial State: Agar file upload nahi hui toh Dashboard clean rakho
-if not uploaded_file:
-    st.info("👋 Welcome. Please upload area surveillance data to generate the Outbreak Risk Intelligence report.")
-    # Default Map of Pakistan
-    m_default = folium.Map(location=[30.3753, 69.3451], zoom_start=5, tiles="cartodbpositron")
-    st_folium(m_default, width=1200, height=450)
-else:
-    # Processing Layout
-    col1, col2 = st.columns([1.5, 1])
+with top_col1:
+    st.subheader("📤 Data Intake")
+    uploaded_file = st.file_uploader("Upload Surveillance Feed", type=["jpg", "png", "mp4"])
     
-    with col1:
-        st.subheader("📡 Field Hazard Analysis") # Replaced YOLO Label
-        img = Image.open(uploaded_file)
-        results = vision_engine.predict(img, conf=conf_threshold)
-        detections_count = len(results[0].boxes)
-        st.image(results[0].plot(), caption="Identified Potential Breeding Hazards", use_column_width=True)
-
-    with col2:
-        st.subheader("📊 Intelligence Summary") # Replaced XGBoost Label
-        
-        # Data Encoding for Karachi/Lahore
-        city_enc = 0 if selected_city == "Karachi" else 1
-        # Prediction Input (Using month for seasonality)
-        pred_input = pd.DataFrame([[city_enc, selected_month*4, 75, 298, 75]], 
-                                  columns=['city_encoded', 'weekofyear', 'reanalysis_relative_humidity_percent', 'reanalysis_avg_temp_k', 'reanalysis_relative_humidity_percent_lag4'])
-        predicted_cases = trend_engine.predict(pred_input)[0]
-        
-        # Decision Engine Logic (utils.py se linked)
-        score, status, advice, color, threshold = calculate_hybrid_risk(predicted_cases, detections_count)
-
-        # Visualizing Metrics
-        st.metric("Predicted Outbreak Intensity", f"{int(predicted_cases)} Cases")
-        st.write(f"**Composite Risk Score: {int(score)}/100**")
-        st.progress(int(score)/100)
-        
-        st.markdown(f"### Current Status: :{color}[{status}]")
-        
-        st.divider()
-        st.subheader("📢 Decision Intelligence")
-        st.success(f"**Actionable Advice:** \n\n {advice}")
-
-    # --- 5. High-Res Heatmap Section ---
-    st.divider()
-    st.subheader(f"📍 Risk Density Heatmap: {selected_city} Districts")
-    
+with top_col2:
+    st.subheader(f"📍 Regional Risk Heatmap: {selected_city}")
+    # Coordinates logic
     try:
         coords_df = pd.read_csv('data/processed/city_coords.csv')
-        city_data = coords_df[coords_df['City'] == selected_city]
-        
-        # Professional Map Setup
+        city_data = coords_df[coords_df['City'].str.contains(selected_city, case=False)]
         m = folium.Map(location=[city_data['Lat'].mean(), city_data['Lon'].mean()], zoom_start=12, tiles="cartodbpositron")
         
-        # Heatmap Layer (Color Glow)
-        heat_data = [[row['Lat'], row['Lon'], score/100] for index, row in city_data.iterrows()]
-        HeatMap(heat_data, radius=25, blur=15, min_opacity=0.5).add_to(m)
+        # We define score here for heatmap glow, default to 10 if no upload
+        current_score = 10 
         
-        # Markers for Districts
-        for _, row in city_data.iterrows():
-            folium.CircleMarker(
-                location=[row['Lat'], row['Lon']],
-                radius=6,
-                color=color,
-                fill=True,
-                fill_opacity=0.7,
-                popup=f"District: {row['Area_Name']}<br>Status: {status}"
-            ).add_to(m)
-            
-        st_folium(m, width=1200, height=500)
-    except Exception as e:
-        st.error(f"Mapping System Offline: {e}")
+        if uploaded_file:
+            # This is a placeholder for the heatmap to show even before full analysis
+            heat_data = [[row['Lat'], row['Lon'], 0.8] for _, row in city_data.iterrows()]
+            HeatMap(heat_data, radius=25, blur=15).add_to(m)
+        
+        st_folium(m, width=900, height=350, key="main_map")
+    except:
+        st.warning("Map Loading... Ensure city_coords.csv is correct.")
+
+st.divider()
+
+# Analysis Section (Only visible after upload)
+if uploaded_file:
+    mid_col1, mid_col2 = st.columns([1.5, 1])
+    
+    with mid_col1:
+        st.subheader("📡 Field Hazard Analysis")
+        img = Image.open(uploaded_file)
+        results = vision_engine.predict(img, conf=conf_threshold)
+        detections = len(results[0].boxes)
+        st.image(results[0].plot(), use_container_width=True)
+
+    with mid_col2:
+        st.subheader("📊 Risk Probability Gauge")
+        # Prediction Logic
+        city_enc = 0 if selected_city == "Karachi" else 1
+        pred_input = pd.DataFrame([[city_enc, month_idx*4, 75, 298, 75]], 
+                                  columns=['city_encoded', 'weekofyear', 'reanalysis_relative_humidity_percent', 'reanalysis_avg_temp_k', 'reanalysis_relative_humidity_percent_lag4'])
+        predicted_cases = int(trend_engine.predict(pred_input)[0])
+        score, status, advice, color, _ = calculate_hybrid_risk(predicted_cases, detections)
+
+        # Plotly Gauge
+        fig = go.Figure(go.Indicator(
+            mode = "gauge+number", value = score,
+            gauge = {'axis': {'range': [0, 100]}, 'bar': {'color': color},
+                     'steps': [{'range': [0, 30], 'color': "green"}, {'range': [70, 100], 'color': "red"}]}))
+        fig.update_layout(height=300)
+        st.plotly_chart(fig, use_container_width=True)
+
+    # Bottom Section: Action Cards
+    st.divider()
+    bot_col1, bot_col2 = st.columns(2)
+    
+    with bot_col1:
+        st.subheader("📋 Response Protocol")
+        st.markdown(f"""<div class="status-card" style="border-top: 5px solid {color};">
+            <h3 style="color:{color}">{status}</h3>
+            <p><b>Recommended Action:</b> {advice}</p>
+        </div>""", unsafe_allow_html=True)
+
+    with bot_col2:
+        st.subheader("🛠️ Resource Allocation")
+        vans = "2 Units" if score > 60 else "1 Unit"
+        st.markdown(f"""<div class="status-card">
+            <p>🚚 <b>Spray Vans:</b> {vans}</p>
+            <p>👥 <b>Health Workers:</b> {"12 Personnel" if score > 50 else "4 Personnel"}</p>
+            <p>🧪 <b>Chemical Stock:</b> Required for {selected_city} Districts</p>
+        </div>""", unsafe_allow_html=True)
+else:
+    st.info("💡 Pro-Tip: Upload a field image to see real-time Resource Allocation and Response Protocols.")
