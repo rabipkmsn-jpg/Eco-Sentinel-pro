@@ -1,0 +1,9 @@
+names:
+names:
+- garbage
+- standing_water
+nc: 2
+
+train: /content/Dengue_heatmap-2/train/images
+val: /content/Dengue_heatmap-2/train/images
+test: /content/Dengue_heatmap-2/train/images
