@@ -9,12 +9,13 @@ Risk Mapping: Integrate geographical coordinates to visualize "High-Risk" zones 
 
 Data-Driven Prevention: Combine visual analysis with historical outbreak data to provide a proactive alert system for municipal authorities.
 
+
 🚧 3. Hurdles & Blockers (Challenges Overcome)
 Developing this project involved overcoming several technical and logistical challenges:
 
 Data Scarcity & Quality: Initially, finding high-quality, localized images of garbage and standing water was challenging. A specialized dataset was curated and augmented to ensure model robustness.
 
-Annotation Intensity: Manually labeling 166+ images for "Garbage" and "Standing Water" classes required high precision to avoid false positives during training.
+Annotation Intensity: Manually labeling by using 'ROBOFLOW' 166+ images for "Garbage" and "Standing Water" classes required high precision to avoid false positives during training.
 
 Dataset Configuration (YAML Errors): During the training phase, significant pathing issues occurred within the YOLO environment. This was resolved by manually restructuring the data.yaml file and re-pointing training/validation directories.
 
@@ -35,15 +36,20 @@ Eco-Sentinel-Pro/
 ├── app.py              # Main application logic (Streamlit Dashboard)
 ├── requirements.txt    # Python dependency manifest
 └── README.md           # Project documentation and guide
+
 🛠️ 5. Technology Stack
+
+AI & Vision: YOLOv8 for detection + Roboflow for dataset management & annotation.
 Computer Vision: YOLOv8 (Ultralytics)
 
 Web Framework: Streamlit
 
 Programming Language: Python 3.12
 
-Data Visualization: Folium (Heatmaps), Pandas, and Matplotlib
-🚀 6. Phase 2: Professional Refinement (Today's Updates)
+Data Visualization: 
+Folium (Heatmaps), Pandas, and Matplotlib
+
+ Professional Refinement:
 In the latest development cycle, the system was upgraded from a basic detection tool to a Decision Support System (DSS) with professional-grade UI/UX and logical accuracy.
 
 🆕 Advanced Features Added:
@@ -55,7 +61,7 @@ Session-State Hard Reset: Developed a custom "Hard Reset" mechanism that clears 
 
 Hybrid Risk Indexing: Refined the calculation formula to weight visual hazards (YOLOv8) and historical trends (XGBoost) at a 60/40 ratio, ensuring a balanced risk assessment.
 
-⚡ Technical Hurdles Resolved (Today's Blockers):
+⚡ Technical Hurdles Resolved :
 Negative Value Handling: Fixed a critical bug where the XGBoost model would predict negative values for low-incidence months. This was resolved using max(0, predicted_cases) normalization.
 
 Dynamic Grid Layout: Overcame Streamlit's linear layout constraints by implementing a Multi-Column Grid System, placing the Interactive Heatmap at the top-right for optimal dashboard scannability.
