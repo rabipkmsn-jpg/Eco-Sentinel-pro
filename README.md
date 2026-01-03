@@ -85,3 +85,17 @@ Real-time Drone Integration: Transitioning from static image uploads to live dro
 IoT Sensor Fusion: Integrating local weather station data and IoT-enabled stagnant water sensors for real-time 24/7 monitoring.
 
 Automated Response Dispatch: Linking the resource allocation engine directly with municipal department APIs to auto-assign fumigation teams as soon as a 'Critical' risk is detected.
+
+
+
+
+
+
+<img width="1833" height="790" alt="Screenshot 2025-12-31 145805" src="https://github.com/user-attachments/assets/60e0f715-3811-488d-9fb1-506923d3b5ed" />
+
+
+<img width="1795" height="872" alt="Screenshot 2025-12-31 144223" src="https://github.com/user-attachments/assets/e892d6fb-d596-46a0-963b-7875efee31c3" />
+
+
+<img width="1759" height="789" alt="Screenshot 2025-12-31 145859" src="https://github.com/user-attachments/assets/55ccd17e-75b2-4870-be51-d8373005fab0" />
+
